@@ -10,9 +10,18 @@ st.set_page_config(page_title="IPTV Cloud Admin", layout="wide")
 conn = st.connection("gsheets", type=GSheetsConnection)
 
 def load_data():
-    # Carga las dos pestañas de tu Google Sheet
-    df_c = conn.read(worksheet="Clientes", ttl="0")
-    df_f = conn.read(worksheet="Finanzas", ttl="0")
+    # El parámetro ttl=0 obliga a buscar datos nuevos siempre
+    try:
+        df_c = conn.read(worksheet="Clientes", ttl=0)
+    except:
+        # Si falla, crea una tabla vacía con los encabezados correctos
+        df_c = pd.DataFrame(columns=['Usuario','Servicio','Vencimiento','WhatsApp','Observaciones'])
+    
+    try:
+        df_f = conn.read(worksheet="Finanzas", ttl=0)
+    except:
+        df_f = pd.DataFrame(columns=['Fecha','Tipo','Detalle','Monto'])
+        
     return df_c.fillna(""), df_f.fillna("")
 
 df_cli, df_fin = load_data()
@@ -94,3 +103,4 @@ with t3:
                 new_f = df_fin[df_fin['opcion'] != reg_del].drop(columns=['opcion'])
                 conn.update(worksheet="Finanzas", data=new_f)
                 st.rerun()
+
