@@ -3,26 +3,24 @@ import pandas as pd
 from streamlit_gsheets import GSheetsConnection
 from datetime import datetime, timedelta
 
-# Configuración de página
 st.set_page_config(page_title="IPTV Cloud Admin", layout="wide")
 
-# Conexión a Google Sheets (Base de Datos en la Nube)
+# Conexión con diagnóstico
 conn = st.connection("gsheets", type=GSheetsConnection)
 
 def load_data():
-    # El parámetro ttl=0 obliga a buscar datos nuevos siempre
     try:
+        # Forzamos la lectura sin usar el caché de Streamlit
         df_c = conn.read(worksheet="Clientes", ttl=0)
-    except:
-        # Si falla, crea una tabla vacía con los encabezados correctos
-        df_c = pd.DataFrame(columns=['Usuario','Servicio','Vencimiento','WhatsApp','Observaciones'])
-    
-    try:
         df_f = conn.read(worksheet="Finanzas", ttl=0)
-    except:
+        return df_c.fillna(""), df_f.fillna("")
+    except Exception as e:
+        # ESTO ES CRÍTICO: Si falla, nos dirá el error real en pantalla
+        st.error(f"Error de conexión real: {e}")
+        # Creamos estructuras básicas para que la app no colapse
+        df_c = pd.DataFrame(columns=['Usuario','Servicio','Vencimiento','WhatsApp','Observaciones'])
         df_f = pd.DataFrame(columns=['Fecha','Tipo','Detalle','Monto'])
-        
-    return df_c.fillna(""), df_f.fillna("")
+        return df_c, df_f
 
 df_cli, df_fin = load_data()
 
@@ -103,4 +101,5 @@ with t3:
                 new_f = df_fin[df_fin['opcion'] != reg_del].drop(columns=['opcion'])
                 conn.update(worksheet="Finanzas", data=new_f)
                 st.rerun()
+
 
