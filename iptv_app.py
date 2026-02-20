@@ -5,22 +5,19 @@ from datetime import datetime, timedelta
 
 st.set_page_config(page_title="IPTV Cloud Admin", layout="wide")
 
-# Conexión con diagnóstico
+# Conexión principal
 conn = st.connection("gsheets", type=GSheetsConnection)
 
 def load_data():
     try:
-        # Forzamos la lectura sin usar el caché de Streamlit
+        # Intentamos leer forzando actualización
         df_c = conn.read(worksheet="Clientes", ttl=0)
         df_f = conn.read(worksheet="Finanzas", ttl=0)
         return df_c.fillna(""), df_f.fillna("")
     except Exception as e:
-        # ESTO ES CRÍTICO: Si falla, nos dirá el error real en pantalla
-        st.error(f"Error de conexión real: {e}")
-        # Creamos estructuras básicas para que la app no colapse
-        df_c = pd.DataFrame(columns=['Usuario','Servicio','Vencimiento','WhatsApp','Observaciones'])
-        df_f = pd.DataFrame(columns=['Fecha','Tipo','Detalle','Monto'])
-        return df_c, df_f
+        # Si esto aparece, el problema está en los Secrets o las APIs de Google
+        st.error(f"Error crítico de conexión: {e}")
+        return pd.DataFrame(columns=['Usuario','Servicio','Vencimiento','WhatsApp','Observaciones']), pd.DataFrame(columns=['Fecha','Tipo','Detalle','Monto'])
 
 df_cli, df_fin = load_data()
 
@@ -101,5 +98,6 @@ with t3:
                 new_f = df_fin[df_fin['opcion'] != reg_del].drop(columns=['opcion'])
                 conn.update(worksheet="Finanzas", data=new_f)
                 st.rerun()
+
 
 
